@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Login from './components/Login';
 
-const ExpenseTracker = () => {
+const App = () => {
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [registerUsername, setRegisterUsername] = useState('');
-    const [registerPassword, setRegisterPassword] = useState('');
     const [token, setToken] = useState('');
+    const [user, setUser] = useState('');
 
     useEffect(() => {
         if (token) {
@@ -20,10 +18,7 @@ const ExpenseTracker = () => {
                         headers: { Authorization: `Bearer ${token}` },
                     });
                     const expenses = response.data;
-
-                    // Calculate the balance
                     const totalBalance = expenses.reduce((acc, expense) => acc + expense.amount, 0);
-
                     setBalance(totalBalance);
                     setTransactions(expenses);
                 } catch (error) {
@@ -53,17 +48,11 @@ const ExpenseTracker = () => {
             });
 
             const newExpense = response.data;
-
-            // Update balance
             setBalance((prevBalance) => prevBalance + parsedAmount);
-
-            // Add transaction to the list
             setTransactions((prevTransactions) => [
                 ...prevTransactions,
                 newExpense,
             ]);
-
-            // Clear form
             setDescription('');
             setAmount('');
         } catch (error) {
@@ -79,10 +68,7 @@ const ExpenseTracker = () => {
             });
 
             if (response.status === 200) {
-                // Update balance
                 setBalance((prevBalance) => prevBalance - amount);
-
-                // Remove transaction from the list
                 setTransactions((prevTransactions) =>
                     prevTransactions.filter((transaction) => transaction._id !== id)
                 );
@@ -96,92 +82,19 @@ const ExpenseTracker = () => {
         }
     };
 
-    const handleLogin = async (username, password) => {
-        try {
-            const response = await axios.post('http://localhost:5000/login', {
-                username,
-                password
-            });
-            setToken(response.data.token);
-            localStorage.setItem('token', response.data.token);
-        } catch (error) {
-            console.error('Error logging in:', error);
-            alert('Failed to login. Please try again.');
-        }
-    };
-
-    const handleRegister = async (username, password) => {
-        try {
-            await axios.post('http://localhost:5000/register', {
-                username,
-                password
-            });
-            alert('Registration successful! You can now log in.');
-        } catch (error) {
-            console.error('Error registering:', error);
-            alert('Failed to register. Please try again.');
-        }
-    };
-
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
-        if (storedToken) {
+        const storedUser = localStorage.getItem('user');
+        if (storedToken && storedUser) {
             setToken(storedToken);
+            setUser(storedUser);
         }
     }, []);
 
     return (
         <div className="container">
             {!token ? (
-                <div>
-                    <h2>Login</h2>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleLogin(username, password);
-                    }}>
-                        <label htmlFor="login-username">Username:</label>
-                        <input
-                            type="text"
-                            id="login-username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
-                        <label htmlFor="login-password">Password:</label>
-                        <input
-                            type="password"
-                            id="login-password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                        <button type="submit">Login</button>
-                    </form>
-
-                    <h2>Register</h2>
-                    <form onSubmit={(e) => {
-                        e.preventDefault();
-                        handleRegister(registerUsername, registerPassword);
-                    }}>
-                        <label htmlFor="register-username">Username:</label>
-                        <input
-                            type="text"
-                            id="register-username"
-                            value={registerUsername}
-                            onChange={(e) => setRegisterUsername(e.target.value)}
-                            required
-                        />
-                        <label htmlFor="register-password">Password:</label>
-                        <input
-                            type="password"
-                            id="register-password"
-                            value={registerPassword}
-                            onChange={(e) => setRegisterPassword(e.target.value)}
-                            required
-                        />
-                        <button type="submit">Register</button>
-                    </form>
-                </div>
+                <Login setToken={setToken} setUser={setUser} />
             ) : (
                 <div>
                     <div className="balance">
@@ -225,7 +138,9 @@ const ExpenseTracker = () => {
                     </div>
                     <button onClick={() => {
                         localStorage.removeItem('token');
+                        localStorage.removeItem('user');
                         setToken('');
+                        setUser('');
                     }}>Logout</button>
                 </div>
             )}
@@ -233,4 +148,4 @@ const ExpenseTracker = () => {
     );
 };
 
-export default ExpenseTracker;
+export default App;

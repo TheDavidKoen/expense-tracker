@@ -1,4 +1,3 @@
-// backend
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -40,6 +39,7 @@ const User = mongoose.model("User", userSchema);
 
 // Define Expense schema
 const expenseSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     description: { type: String, required: true },
     amount: { type: Number, required: true },
 });
@@ -83,7 +83,7 @@ app.post("/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-        const token = jwt.sign({ username: user.username }, JWT_SECRET);
+        const token = jwt.sign({ id: user._id, username: user.username }, JWT_SECRET);
         res.json({ token });
     } catch (error) {
         console.error("Error logging in:", error);
@@ -94,7 +94,7 @@ app.post("/login", async (req, res) => {
 // API routes
 app.get("/expenses", authenticateToken, async (req, res) => {
     try {
-        const expenses = await Expense.find();
+        const expenses = await Expense.find({ user: req.user.id });
         res.json(expenses);
     } catch (error) {
         console.error("Error fetching expenses:", error);
@@ -110,7 +110,7 @@ app.post("/expenses", authenticateToken, async (req, res) => {
             return res.status(400).json({ message: "Description and amount are required." });
         }
 
-        const newExpense = new Expense({ description, amount });
+        const newExpense = new Expense({ user: req.user.id, description, amount });
         await newExpense.save();
         res.json(newExpense);
     } catch (error) {
@@ -122,11 +122,9 @@ app.post("/expenses", authenticateToken, async (req, res) => {
 app.delete('/expenses/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        console.log(`Attempting to delete expense with id: ${id}`); // Log ID
-        const deletedExpense = await Expense.findByIdAndDelete(id);
+        const deletedExpense = await Expense.findOneAndDelete({ _id: id, user: req.user.id });
 
         if (!deletedExpense) {
-            console.log(`Expense with id: ${id} not found`); // Log if not found
             return res.status(404).json({ message: 'Expense not found' });
         }
 
