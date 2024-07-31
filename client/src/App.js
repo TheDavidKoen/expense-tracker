@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Login from './components/Login';
+import EditExpense from './components/EditExpense';
 
 const App = () => {
     const [balance, setBalance] = useState(0);
@@ -9,6 +10,7 @@ const App = () => {
     const [amount, setAmount] = useState('');
     const [token, setToken] = useState('');
     const [user, setUser] = useState('');
+    const [editingExpense, setEditingExpense] = useState(null);
 
     useEffect(() => {
         if (token) {
@@ -82,6 +84,19 @@ const App = () => {
         }
     };
 
+    const updateExpense = async (updatedExpense) => {
+        setBalance((prevBalance) => {
+            const oldAmount = transactions.find(t => t._id === updatedExpense._id).amount;
+            return prevBalance - oldAmount + updatedExpense.amount;
+        });
+        setTransactions((prevTransactions) =>
+            prevTransactions.map((transaction) =>
+                transaction._id === updatedExpense._id ? updatedExpense : transaction
+            )
+        );
+        setEditingExpense(null);
+    };
+
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
@@ -108,34 +123,44 @@ const App = () => {
                             {transactions.map((transaction) => (
                                 <li key={transaction._id}>
                                     {`${transaction.description}: R${transaction.amount.toFixed(2)}`}
+                                    <button onClick={() => setEditingExpense(transaction)}>Edit</button>
                                     <button onClick={() => deleteExpense(transaction._id, transaction.amount)}>Delete</button>
                                 </li>
                             ))}
                         </ul>
                     </div>
-                    <div className="add-expense">
-                        <h2>Add Expense</h2>
-                        <form onSubmit={(e) => e.preventDefault()}>
-                            <label htmlFor="description">Description:</label>
-                            <input
-                                type="text"
-                                id="description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                required
-                            />
-                            <label htmlFor="amount">Amount:</label>
-                            <input
-                                type="number"
-                                id="amount"
-                                step="0.01"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                required
-                            />
-                            <button type="button" onClick={addExpense}>Add Expense</button>
-                        </form>
-                    </div>
+                    {editingExpense ? (
+                        <EditExpense
+                            token={token}
+                            expense={editingExpense}
+                            onUpdate={updateExpense}
+                            onCancel={() => setEditingExpense(null)}
+                        />
+                    ) : (
+                        <div className="add-expense">
+                            <h2>Add Expense</h2>
+                            <form onSubmit={(e) => e.preventDefault()}>
+                                <label htmlFor="description">Description:</label>
+                                <input
+                                    type="text"
+                                    id="description"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    required
+                                />
+                                <label htmlFor="amount">Amount:</label>
+                                <input
+                                    type="number"
+                                    id="amount"
+                                    step="0.01"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    required
+                                />
+                                <button type="button" onClick={addExpense}>Add Expense</button>
+                            </form>
+                        </div>
+                    )}
                     <button onClick={() => {
                         localStorage.removeItem('token');
                         localStorage.removeItem('user');
